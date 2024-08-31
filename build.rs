@@ -17,17 +17,19 @@ fn mkdir()->(PathBuf,PathBuf) {
     (srt_source_path.canonicalize().unwrap(),srt_install_path.canonicalize().unwrap())
 }
 
-fn main() {
-    
+fn compile_srt_lib(){
+
     let  (srt_source_path, srt_install_path) = mkdir();
     // 克隆SRT仓库
-    if !srt_source_path.exists() {
-        std::fs::create_dir_all(&srt_source_path).expect("无法创建SRT源码目录");
+    if srt_source_path.read_dir().map(|mut i| i.next().is_none()).unwrap_or(true) {
+        println!("Cloning SRT repository...");
         Command::new("git")
             .current_dir(&srt_source_path.parent().unwrap())
             .args(&["clone", "https://github.com/Haivision/srt.git", "srt"])
             .status()
             .expect("无法克隆SRT仓库");
+    } else {
+        println!("SRT repository already exists, skipping clone.");
     }
 
     // 编译并安装SRT
@@ -60,6 +62,11 @@ fn main() {
         .args(&["--install", "."])
         .status()
         .expect("CMake安装失败");
+}
+
+fn main() {
+    let  (_, srt_install_path) = mkdir();
+    compile_srt_lib();
 
     // 设置链接路径
     println!("cargo:rustc-link-search=native={}/lib", srt_install_path.to_str().unwrap());
@@ -76,7 +83,7 @@ fn main() {
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
         .clang_arg(format!("-I{}", srt_include_path.display()))
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .generate()
         .expect("无法生成绑定");
 
