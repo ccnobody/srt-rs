@@ -1,0 +1,13 @@
+[package]
+name = "srt-rs"
+version = "0.1.0"
+edition = "2021"
+
+# rust bind
+
+
+[dependencies]
+bindgen = "0.69.1"
+
+[build-dependencies]
+bindgen = "0.69.1"
